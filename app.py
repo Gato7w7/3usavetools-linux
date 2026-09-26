@@ -73,7 +73,40 @@ class App:
         )
 
         if filePath[0]:
-            self.srcPath.setText(filePath[0])
+            srcPath = filePath[0]
+            self.srcPath.setText(srcPath)
+
+            inputSize = path.getsize(srcPath)
+
+            if inputSize == 0x8A24:
+                self.toWiiU.setChecked(True)
+
+                QMessageBox.information(
+                    self.window,
+                    "Save detected",
+                    "Nintendo 3DS save detected.\n\n"
+                    "Conversion set to:\n"
+                    "3DS → Wii U"
+                )
+
+            elif inputSize == 0x8A00:
+                self.to3DS.setChecked(True)
+
+                QMessageBox.information(
+                    self.window,
+                    "Save detected",
+                    "Wii U save detected.\n\n"
+                    "Conversion set to:\n"
+                    "Wii U → 3DS"
+                )
+
+            else:
+                QMessageBox.warning(
+                    self.window,
+                    "Unknown save",
+                    f"The selected file is not a recognized MH3U save.\n\n"
+                    f"File size: {inputSize} bytes"
+                )
 
     def setDst(self):
         filePath = QFileDialog.getSaveFileName(
