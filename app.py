@@ -1,83 +1,131 @@
-from os import path, access, W_OK
+from os import path
+
+from PyQt5.QtWidgets import (
+    QApplication,
+    QWidget,
+    QPushButton,
+    QFormLayout,
+    QFileDialog,
+    QLineEdit,
+    QMessageBox,
+    QRadioButton,
+    QButtonGroup,
+)
+
 from converter.converter_3ds import Converter3DS
 from converter.converter_wiiu import ConverterWiiU
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QFormLayout, QFileDialog, QTextEdit, QMessageBox
 
-class App():
+
+class App:
     def start(self):
         app = QApplication([])
-        app.setStyle('Fusion')
-        self.app = app
+
+        app.setStyle("Fusion")
 
         self.window = QWidget()
-        self.window.setWindowTitle('MH3U Save Converter')
+        self.window.setWindowTitle("MH3U Save Converter")
+        self.window.setMinimumWidth(600)
+
         layout = QFormLayout()
 
-        loadSrcButton = QPushButton('Load save file')
+        # Source file
+        self.srcPath = QLineEdit()
+        loadSrcButton = QPushButton("Select save")
         loadSrcButton.clicked.connect(self.loadSrc)
-        self.srcPath = QTextEdit(self.window)
-        self.srcPath.setFixedHeight(24)
-
-        setOutputButton = QPushButton('Set output file')
-        setOutputButton.clicked.connect(self.setDst)
-        self.dstPath = QTextEdit(self.window)
-        self.dstPath.setFixedHeight(24)
-
-        convertButton = QPushButton('Convert')
-        convertButton.clicked.connect(self.convert)
 
         layout.addRow(loadSrcButton, self.srcPath)
+
+        # Conversion type
+        self.toWiiU = QRadioButton("3DS → Wii U")
+        self.to3DS = QRadioButton("Wii U → 3DS")
+
+        self.toWiiU.setChecked(True)
+
+        self.conversionGroup = QButtonGroup()
+        self.conversionGroup.addButton(self.toWiiU)
+        self.conversionGroup.addButton(self.to3DS)
+
+        layout.addRow("Convert:", self.toWiiU)
+        layout.addRow("", self.to3DS)
+
+        # Destination file
+        self.dstPath = QLineEdit()
+        setOutputButton = QPushButton("Select output")
+        setOutputButton.clicked.connect(self.setDst)
+
         layout.addRow(setOutputButton, self.dstPath)
+
+        # Convert button
+        convertButton = QPushButton("Convert")
+        convertButton.clicked.connect(self.convert)
+
         layout.addRow(convertButton)
 
         self.window.setLayout(layout)
         self.window.show()
+
         app.exec()
 
     def loadSrc(self):
-        filePath = QFileDialog.getOpenFileName(self.window, 'Load save file')
-        if filePath:
+        filePath = QFileDialog.getOpenFileName(
+            self.window,
+            "Select MH3U save file"
+        )
+
+        if filePath[0]:
             self.srcPath.setText(filePath[0])
 
     def setDst(self):
-        filePath = QFileDialog.getSaveFileName(self.window, 'Set output file')
-        if filePath:
+        filePath = QFileDialog.getSaveFileName(
+            self.window,
+            "Select output file"
+        )
+
+        if filePath[0]:
             self.dstPath.setText(filePath[0])
 
     def convert(self):
-        srcPath = self.srcPath.toPlainText()
-        dstPath = self.dstPath.toPlainText()
+        srcPath = self.srcPath.text()
+        dstPath = self.dstPath.text()
 
         if not path.exists(srcPath):
+            QMessageBox.warning(
+                self.window,
+                "Invalid save",
+                "The selected save file does not exist."
+            )
             return
 
-        inputSize = path.getsize(srcPath)
+        if not dstPath:
+            QMessageBox.warning(
+                self.window,
+                "Output missing",
+                "Please select an output file."
+            )
+            return
 
-        self.error = None
-        self.success = None
+        try:
+            if self.toWiiU.isChecked():
+                converter = ConverterWiiU(srcPath)
+            else:
+                converter = Converter3DS(srcPath)
 
-        if inputSize == 0x8A00:
-            converter = ConverterWiiU(srcPath)
-        elif inputSize == 0x8A24:
-            converter = Converter3DS(srcPath)
-        else:
-            self.error = QMessageBox()
-            self.error.setText('Invalid save file')
-
-        if not access(path.dirname(dstPath), W_OK):
-            self.error = QMessageBox()
-            self.error.setText('Output path not writable')
-
-        if self.error:
-            self.error.show()
-        else:
             converter.convert(dstPath)
-            self.success = QMessageBox()
-            self.success.setText('File converted successfully')
 
-        if self.success:
-            self.success.show()
+        except Exception as error:
+            QMessageBox.critical(
+                self.window,
+                "Conversion error",
+                f"The conversion failed:\n\n{error}"
+            )
+            return
+
+        QMessageBox.information(
+            self.window,
+            "Success",
+            "File converted successfully."
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     App().start()
