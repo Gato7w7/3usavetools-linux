@@ -78,7 +78,8 @@ class App:
 
             inputSize = path.getsize(srcPath)
 
-            if inputSize == 0x8A24:
+            if inputSize == 0x8A00:
+                # 3DS save
                 self.toWiiU.setChecked(True)
 
                 QMessageBox.information(
@@ -89,7 +90,8 @@ class App:
                     "3DS → Wii U"
                 )
 
-            elif inputSize == 0x8A00:
+            elif inputSize == 0x8A24:
+                # Wii U save
                 self.to3DS.setChecked(True)
 
                 QMessageBox.information(
